@@ -1,0 +1,172 @@
+useExisting: 
+    A child shadows immmediate parent and asks for its ancestors service.
+
+                                         Blue[new Service]
+Blue[uses parent's]                     [Red][new Service]             Blue[uses parent's]
+                    [Red[uses parent's], Red[uses parent's], Blue[uses alias of Blues's]]
+
+
+
+
+Opaque token & @Inject
+    app.tokens      :    export const ROOT_USERSERVICE = new OpaqueToken('UserService');
+    app.module      :    providers: [ UserService,
+                              { provide: ROOT_USER_SERVICE, useExisting: UserService }
+                            ],
+    todo.component  :    constructor( @Inject(ROOT_USER_SERVICE) private userService ){}
+
+
+
+@Inject for useValue
+            providers:[ { provide: 'DATA_URL', useValue: 'http://dummyendpoint.data.com' } ]
+            class App {
+                constructor(@Inject('DATA_URL') private url){
+                    this.URL = url;
+                }
+            }
+
+
+
+provide in providers array always requires a constructor, 
+    so string is a type and String is a constructor
+
+    providers: [
+        { provide: String, useValue: 'http://dummyendpoint.data.com' }
+    ]
+    
+    URL: string;
+    constructor(private url: string) {
+        this.URL = url;
+    }
+
+
+    Check:
+            providers: [                                                                                Works
+                { provide: String, useClass: IdService }
+            ]
+
+            export class MainComponent {
+                URL;
+                constructor( @Inject(String) private url: IdService) {
+                    this.URL = url;
+                }
+            }
+
+            providers: [                                                                                Not Works
+                { provide: String, useClass: IdService }
+            ]
+
+            export class MainComponent {
+                URL;
+                constructor(private url: IdService) {
+                    this.URL = url;
+                }
+            }
+
+
+            providers: [                                                                                Works
+                { provide: String, useClass: IdService }
+            ]
+
+            export class MainComponent {
+                URL : string;
+                constructor(private url: string) {
+                    this.URL = url;
+                }
+            }
+
+
+            private url: 'Anything'     Looks for provider of type String
+
+
+
+Can't resolve all parameters    -   use useValue instead of useClass
+        Occurs when we use useClass(calls default constructor - constructor with no params) but has no default constructor
+        useValue : new MockService(3)
+
+
+
+providers: [                                                                                                                    Takes 4 for both
+        { provide: MockService, useValue: new MockService(3) }, { provide: MockService, useValue: new MockService(4) }
+    ]
+export class MainComponent {
+    URL;
+    NewUrl;
+    constructor(private serviceOne: MockService, private serviceTwo: MockService) {
+        this.URL = serviceOne;
+        this.NewUrl = serviceTwo;
+    }
+}
+
+
+
+To provide inner dependencies to factories , you will have to use the "deps" property in combination with "useFactory"
+    {
+        provide: UserService,
+        useFactory: (credentialService,endPointService)=>{
+
+        },
+        deps:[CredentialService,EndPointService]
+    }
+
+
+
+
+Optional parameters
+class Car {
+    constructor(@Optional(d3) de) {
+        if (!d3) {
+            // dependency fallback
+        }
+    }
+}
+
+
+
+-------------
+DataService is injected into AppComponent even though AppComponent doesn't have a @Injectable decorator, because it has @Component decorator (in general, any decorator is enough)
+Similarly if DataService needs Http as a dependent, DataService must have any decorator [If it uses @Inject in constructor, an error (No provider for Http) ]
+app.component.ts
+        @Component({
+            selector: 'my-app',
+            template: `
+                <ul>
+                <li *ngFor="let item of items">{{item.name}}</li>
+                </ul>
+            `,
+            providers: [DataService]
+        })
+
+
+
+@Component({            //or @Injectable                    It works even though there is no provider for Http
+                                                            But when @Component removed and @Inject used in constructor, error[No provider for Http]
+})
+export class IdService {
+
+    private id: string;
+    constructor(http: Http) {
+        console.log(http)
+        this.regenerate();
+    }
+
+}
+
+Of course, putting just anything that is a decorator on a class doesn’t sound really appropiate. 
+Luckily, Angular comes with yet another decorator we can use. @Injectable is normally used for Dart metadata generation. 
+It doesn’t have any special meaning in TypeScript-land, however, it turns out to be a perfect fit for our use case
+This will just enforce TypeScript to emit the needed metadata, the decorator itself doesn’t have any special meaning here.
+
+
+-------------
+A decorator is just a function that gives you access to the target that needs to be decorated
+@decoratorExpression
+class MyClass { }
+
+
+function decoratorExpression(target) {
+   // Add a property on target
+   target.annotated = true;
+}
+
+
